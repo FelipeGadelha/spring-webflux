@@ -19,6 +19,7 @@ import reactor.blockhound.BlockingOperationError;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -26,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 @ActiveProfiles(value = "test")
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-//@DirtiesContext
 @AutoConfigureWebTestClient
 public class AnimeControllerIT {
 
@@ -59,14 +59,14 @@ public class AnimeControllerIT {
     @BeforeEach
     public void setup(){
 
-        animeRepository.deleteAll().subscribe();
-//        List<String> statements = Arrays.asList("DROP TABLE IF EXISTS anime ;",
-//                "CREATE TABLE anime ( id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL);");
-//        System.err.println("---------------------------------------------------------------------------");
-//        statements.forEach(it -> databaseClient.sql(it)
-//                .fetch()
-//                .rowsUpdated()
-//                .block());
+        List<String> statements = Arrays.asList(
+                "DROP TABLE IF EXISTS animes ;",
+                "CREATE TABLE animes ( id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL);");
+        System.err.println("---------------------------------------------------------------------------");
+        statements.forEach(it -> databaseClient.sql(it)
+                .fetch()
+                .rowsUpdated()
+                .block());
 
 //        System.err.println("---------------------------------------------------------------------------");
 //        animeRepository.deleteAll()

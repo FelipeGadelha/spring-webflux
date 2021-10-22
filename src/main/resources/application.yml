@@ -1,3 +1,5 @@
+#  http://localhost:8080/webjars/swagger-ui/index.html?configUrl=/v3/api-docs/swagger-config
+#  http://localhost:8080/swagger-ui.html
 
 spring:
   r2dbc:
@@ -10,3 +12,8 @@ logging:
     org.springframework.r2dbc: DEBUG
 #    io.r2dbc.postgresql.QUERY: DEBUG # for queries
 #    io.r2dbc.postgresql.PARAM: DEBUG # for parameters
+
+spring-webflux:
+  jwt:
+    expiration: ${SPRING_WEBFLUX_EXPIRATION:15} # 15 minutos
+    secret: ${SPRING_WEBFLUX_SECRET:secreto}

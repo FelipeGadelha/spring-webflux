@@ -7,7 +7,7 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
-@Table(value = "anime")
+@Table(value = "animes")
 public class Anime {
 
     @Id
