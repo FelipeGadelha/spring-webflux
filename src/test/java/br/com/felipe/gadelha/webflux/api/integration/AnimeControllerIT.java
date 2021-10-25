@@ -3,11 +3,15 @@ package br.com.felipe.gadelha.webflux.api.integration;
 import br.com.felipe.gadelha.webflux.domain.entity.Anime;
 import br.com.felipe.gadelha.webflux.domain.repository.AnimeRepository;
 import br.com.felipe.gadelha.webflux.util.AnimeBuilder;
+import br.com.felipe.gadelha.webflux.util.DataBuilder;
+import br.com.felipe.gadelha.webflux.util.TokenAuth;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.test.context.ActiveProfiles;
@@ -24,10 +28,13 @@ import java.util.List;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.springSecurity;
+
 @ActiveProfiles(value = "test")
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
+@AutoConfigureMockMvc
 public class AnimeControllerIT {
 
     final String BASE_PATH = "/animes";
@@ -43,6 +50,17 @@ public class AnimeControllerIT {
     @Autowired
     private DatabaseClient databaseClient;
 
+    @Autowired
+    private DataBuilder dataBuilder;
+
+//    @Autowired
+//    public void setup(ApplicationContext context) {
+//        this.webClient = WebTestClient
+//                .bindToApplicationContext(context)
+//                .apply(springSecurity())
+//                .configureClient()
+//                .build();
+//    }
 
 //    private List<Anime> getData(){
 //        return Arrays.asList(
@@ -58,16 +76,26 @@ public class AnimeControllerIT {
 
     @BeforeEach
     public void setup(){
-
         List<String> statements = Arrays.asList(
                 "DROP TABLE IF EXISTS animes ;",
-                "CREATE TABLE animes ( id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL);");
-        System.err.println("---------------------------------------------------------------------------");
+                "CREATE TABLE animes ( id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL);",
+                "DROP TABLE IF EXISTS users ;",
+                "CREATE TABLE users (\n" +
+                        "\tid serial not null,\n" +
+                        "\tname varchar not null,\n" +
+                        "\tusername varchar(100) not null,\n" +
+                        "\tpassword varchar not null,\n" +
+                        "\tauthorities varchar(150) not null,\n" +
+                        "\t\n" +
+                        "    UNIQUE(username),\n" +
+                        "    CONSTRAINT users_pk PRIMARY KEY (id)\n" +
+                        ");");
         statements.forEach(it -> databaseClient.sql(it)
                 .fetch()
                 .rowsUpdated()
                 .block());
-
+        dataBuilder.adminDataBuilder();
+        dataBuilder.userDataBuilder();
 //        System.err.println("---------------------------------------------------------------------------");
 //        animeRepository.deleteAll()
 //                .thenMany(Flux.fromIterable(getData()))
@@ -78,10 +106,6 @@ public class AnimeControllerIT {
 //                .blockLast();
 //        System.err.println("---------------------------------------------------------------------------");
     }
-
-    @BeforeAll
-    public static void blockHoundSetup() { BlockHound.install(); }
-
     @Test
     public void blockHoundWorks() {
         try {
@@ -99,11 +123,12 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("should findAll anime successful")
-    public void test1() {
+    public void test1() throws Exception {
         animeRepository.save(anime).subscribe();
 
         webClient.get()
                 .uri(BASE_PATH)
+                .header("Authorization", dataBuilder.getToken(TokenAuth.ADMIN))
                 .exchange()
                 .expectStatus().is2xxSuccessful()
                 .expectBody()
@@ -117,6 +142,7 @@ public class AnimeControllerIT {
         animeRepository.save(anime).subscribe();
         webClient.get()
                 .uri(BASE_PATH)
+                .header("Authorization", dataBuilder.getToken(TokenAuth.ADMIN))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(Anime.class)
@@ -130,6 +156,7 @@ public class AnimeControllerIT {
         animeRepository.save(anime).subscribe();
         webClient.get()
                 .uri(BASE_PATH+ "/{id}", anime.getId())
+                .header("Authorization", dataBuilder.getToken(TokenAuth.USER))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(Anime.class)
@@ -141,6 +168,7 @@ public class AnimeControllerIT {
     public void test4() {
         webClient.get()
                 .uri(BASE_PATH+ "/{id}", 1L)
+                .header("Authorization", dataBuilder.getToken(TokenAuth.USER))
                 .exchange()
                 .expectStatus().isNotFound()
                 .expectBody()
@@ -154,6 +182,7 @@ public class AnimeControllerIT {
         Anime animeToBeSaved = AnimeBuilder.builderAnimeToBeSaved();
         webClient.post()
                 .uri(BASE_PATH)
+                .header("Authorization", dataBuilder.getToken(TokenAuth.ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(animeToBeSaved))
                 .exchange()
@@ -169,6 +198,7 @@ public class AnimeControllerIT {
         Anime one_piece = Anime.builder().name("One Piece").build();
         webClient.post()
                 .uri(BASE_PATH + "/batch")
+                .header("Authorization", dataBuilder.getToken(TokenAuth.ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(List.of(naruto, one_piece)))
                 .exchange()
@@ -186,6 +216,7 @@ public class AnimeControllerIT {
         Anime one_piece = Anime.builder().name("One Piece").build();
         webClient.post()
                 .uri(BASE_PATH + "/batch")
+                .header("Authorization", dataBuilder.getToken(TokenAuth.ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(List.of(one_piece, empty)))
                 .exchange()
@@ -203,6 +234,7 @@ public class AnimeControllerIT {
         Anime anime = Anime.builder().name("").build();
         webClient.post()
                 .uri(BASE_PATH)
+                .header("Authorization", dataBuilder.getToken(TokenAuth.ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(anime))
                 .exchange()
@@ -217,6 +249,7 @@ public class AnimeControllerIT {
         animeRepository.save(anime).subscribe();
         webClient.delete()
                 .uri(BASE_PATH + "/{id}", anime.getId())
+                .header("Authorization", dataBuilder.getToken(TokenAuth.ADMIN))
                 .exchange()
                 .expectStatus().isNoContent();
     }
@@ -226,6 +259,7 @@ public class AnimeControllerIT {
     public void test10() {
         webClient.delete()
                 .uri(BASE_PATH + "/{id}", 1L)
+                .header("Authorization", dataBuilder.getToken(TokenAuth.ADMIN))
                 .exchange()
                 .expectStatus().isNotFound()
                 .expectBody()
@@ -242,6 +276,7 @@ public class AnimeControllerIT {
                 .build();
         webClient.put()
                 .uri(BASE_PATH + "/{id}", anime.getId())
+                .header("Authorization", dataBuilder.getToken(TokenAuth.ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(animeUpdate)
                 ).exchange()
@@ -262,6 +297,7 @@ public class AnimeControllerIT {
     public void test12() {
         webClient.put()
                 .uri(BASE_PATH + "/{id}", 1L)
+                .header("Authorization", dataBuilder.getToken(TokenAuth.ADMIN))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(Anime.builder().name("Updated Naruto").build()))
                 .exchange()

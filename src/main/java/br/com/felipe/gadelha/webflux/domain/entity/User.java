@@ -23,7 +23,7 @@ public class User implements UserDetails {
     @Deprecated
     public User() { }
 
-    public User(Builder builder) {
+    private User(Builder builder) {
         this.id = builder.id;
         this.name = builder.name;
         this.username = builder.username;

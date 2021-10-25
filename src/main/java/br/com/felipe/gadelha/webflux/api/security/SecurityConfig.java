@@ -31,9 +31,12 @@ public class SecurityConfig {
         return http
                 .authorizeExchange()
                 .pathMatchers(HttpMethod.POST, "/auth").permitAll()
+                .pathMatchers(HttpMethod.POST, "/users").permitAll()
                 .pathMatchers("/webjars/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                .pathMatchers(HttpMethod.POST, "/animes/**").hasRole("ADMIN")
                 .pathMatchers(HttpMethod.GET, "/animes/**").hasRole("USER")
+                .pathMatchers(HttpMethod.POST, "/animes/**").hasRole("ADMIN")
+                .pathMatchers(HttpMethod.PUT, "/animes/**").hasRole("ADMIN")
+                .pathMatchers(HttpMethod.DELETE, "/animes/**").hasRole("ADMIN")
                 .anyExchange().authenticated()
                 .and().csrf().disable()
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
@@ -42,15 +45,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public BCryptPasswordEncoder bCryptPasswordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public ReactiveAuthenticationManager reactiveAuthenticationManager(PasswordEncoder passwordEncoder) {
+    public ReactiveAuthenticationManager reactiveAuthenticationManager() {
         var authenticationManager = new UserDetailsRepositoryReactiveAuthenticationManager(userDetailsService);
 //        authenticationManager.setPasswordEncoder(passwordEncoder);
         return authenticationManager;
-
     }
 }

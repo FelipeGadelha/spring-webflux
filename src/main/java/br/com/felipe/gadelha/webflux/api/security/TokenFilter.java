@@ -25,7 +25,6 @@ public class TokenFilter implements WebFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String token = retrieveToken(exchange.getRequest());
-        System.err.println(token);
         if (StringUtils.hasText(token) && this.tokenProvider.isValidToken(token)) {
             Authentication authentication = this.tokenProvider.getAuthentication(token);
             return chain.filter(exchange)

@@ -80,12 +80,4 @@ public class TokenProvider {
             return false;
         }
     }
-
-//    private String getUsername(String token) {
-//        return Jwts.parser()
-//                .setSigningKey(this.secret)
-//                .parseClaimsJws(token)
-//                .getBody()
-//                .getAudience();
-//    }
 }
